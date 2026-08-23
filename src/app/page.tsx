@@ -51,15 +51,39 @@ const features = [
   },
 ] as const;
 
-function IpadShowcase() {
+// Resolve real cover art once; cached by the Next data cache for a day.
+async function fetchCover(name: string): Promise<string | null> {
+  const apiKey = process.env.RAWG_API_KEY;
+  if (!apiKey) return null;
+  try {
+    const res = await fetch(
+      `https://api.rawg.io/api/games?key=${encodeURIComponent(apiKey)}&search=${encodeURIComponent(name)}&search_precise=true&page_size=1`,
+      { signal: AbortSignal.timeout(8000), next: { revalidate: 86400 } },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      results?: { background_image?: string | null }[];
+    };
+    const img = data.results?.[0]?.background_image;
+    return typeof img === "string" ? img : null;
+  } catch {
+    return null;
+  }
+}
+
+async function IpadShowcase() {
+  const covers = await Promise.all(
+    showcaseGames.map((g) => fetchCover(g.name)),
+  );
+
   return (
     <div
       aria-hidden
-      className="relative mx-auto mt-14 w-full max-w-3xl px-2 sm:px-0"
+      className="relative mx-auto mt-14 w-full max-w-4xl px-2 sm:px-0"
     >
-      {/* Tablet bezel */}
-      <div className="rounded-[2rem] border border-white/10 bg-zinc-900 p-2 shadow-2xl shadow-black/40 sm:p-3">
-        <div className="relative overflow-hidden rounded-[1.5rem] bg-background sm:rounded-[2rem]">
+      {/* Tablet bezel - wide landscape proportions like a real iPad */}
+      <div className="rounded-[1.75rem] border border-white/10 bg-zinc-900 p-2 shadow-2xl shadow-black/40 sm:rounded-[2.25rem] sm:p-3">
+        <div className="relative overflow-hidden rounded-[1.25rem] bg-background sm:rounded-[1.75rem]">
           <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-tr from-transparent via-white/5 to-white/10" />
 
           <div className="flex">
@@ -75,7 +99,7 @@ function IpadShowcase() {
 
             {/* Screen content */}
             <div className="min-w-0 flex-1">
-              <header className="flex items-center justify-between gap-3 p-3 sm:p-4">
+              <header className="flex items-center justify-between gap-3 p-3 pb-2 sm:p-4 sm:pb-3">
                 <span className="text-xs font-semibold tracking-tight sm:text-sm">
                   My Library
                 </span>
@@ -93,13 +117,22 @@ function IpadShowcase() {
                 />
               </header>
 
-              <div className="grid grid-cols-3 gap-2 p-3 pt-0 sm:gap-3 sm:p-4 sm:pt-0">
-                {showcaseGames.map((g) => (
+              <div className="grid grid-cols-3 gap-2 p-3 pt-0 sm:grid-cols-6 sm:gap-3 sm:p-4 sm:pt-0">
+                {showcaseGames.map((g, i) => (
                   <div
                     key={g.name}
                     className={`group relative aspect-[3/4] overflow-hidden rounded-lg bg-gradient-to-br ${g.gradient} transition duration-300 hover:-translate-y-1 hover:shadow-xl`}
                   >
-                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 pt-6 sm:p-2.5 sm:pt-8">
+                    {covers[i] && (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={covers[i] as string}
+                        alt=""
+                        loading="lazy"
+                        className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                      />
+                    )}
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 pt-6 sm:p-2.5 sm:pt-8">
                       <p className="text-[11px] font-bold leading-tight text-white sm:text-xs">
                         {g.name}
                       </p>
@@ -126,64 +159,67 @@ export default async function Home() {
   const session = await auth.api.getSession({ headers: await headers() });
 
   return (
-    <main className="relative mx-auto max-w-5xl overflow-hidden px-4 pb-20 pt-16 text-center sm:px-6 sm:pt-20">
+    <>
+      {/* Full-page gradient backdrop */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 bg-gradient-to-b from-primary/15 to-transparent"
+        className="fixed inset-0 -z-10 bg-gradient-to-b from-primary/15 via-background to-primary/8"
       />
 
-      <span className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-sm text-muted-foreground shadow-sm">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.svg" alt="" className="size-4" />
-        Your personal game tracker
-      </span>
+      <main className="relative mx-auto max-w-5xl px-4 pb-20 pt-16 text-center sm:px-6 sm:pt-20">
+        <span className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-sm text-muted-foreground shadow-sm">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="" className="size-4" />
+          Your personal game tracker
+        </span>
 
-      {/*
-        Explicit leading + padding keeps descenders (g, y, p) visible:
-        bg-clip-text clips at the line box, which cuts text at default leading.
-      */}
-      <h1 className="mx-auto mt-6 max-w-2xl bg-gradient-to-br from-foreground via-foreground to-muted-foreground bg-clip-text pb-2 text-4xl font-extrabold leading-[1.12] tracking-tight text-transparent sm:text-6xl sm:leading-[1.08]">
-        Your game backlog, finally under control
-      </h1>
-      <p className="mx-auto mt-4 max-w-xl text-balance text-base text-muted-foreground sm:text-lg">
-        Track what you play across every platform: completion status, ratings,
-        reviews, categories and playtime in one clean dashboard.
-      </p>
+        {/*
+          Explicit leading + padding keeps descenders (g, y, p) visible:
+          bg-clip-text clips at the line box, which cuts text at default leading.
+        */}
+        <h1 className="mx-auto mt-6 max-w-2xl bg-gradient-to-br from-foreground via-foreground to-muted-foreground bg-clip-text pb-2 text-4xl font-extrabold leading-[1.12] tracking-tight text-transparent sm:text-6xl sm:leading-[1.08]">
+          Your game backlog, finally under control
+        </h1>
+        <p className="mx-auto mt-4 max-w-xl text-balance text-base text-muted-foreground sm:text-lg">
+          Track what you play across every platform: completion status, ratings,
+          reviews, categories and playtime in one clean dashboard.
+        </p>
 
-      <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-        <Button asChild size="lg" className="shadow-lg shadow-primary/25">
-          <Link href={session ? "/games" : "/login?mode=signup"}>
-            {session ? "Open my backlog" : "Get started - it's free"}
-            <ArrowRight className="ml-1 size-4" />
-          </Link>
-        </Button>
-        {!session && (
-          <Button asChild variant="outline" size="lg">
-            <Link href="/login">
-              <LogIn className="mr-1 size-4" /> Sign in
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <Button asChild size="lg" className="shadow-lg shadow-primary/25">
+            <Link href={session ? "/games" : "/login?mode=signup"}>
+              {session ? "Open my backlog" : "Get started - it's free"}
+              <ArrowRight className="ml-1 size-4" />
             </Link>
           </Button>
-        )}
-      </div>
+          {!session && (
+            <Button asChild variant="outline" size="lg">
+              <Link href="/login">
+                <LogIn className="mr-1 size-4" /> Sign in
+              </Link>
+            </Button>
+          )}
+        </div>
 
-      <IpadShowcase />
+        <IpadShowcase />
 
-      <dl className="mt-16 grid w-full grid-cols-1 gap-4 text-left sm:grid-cols-2">
-        {features.map(({ icon: Icon, title, desc, accent }) => (
-          <div
-            key={title}
-            className="rounded-2xl border bg-card p-5 text-card-foreground shadow-sm transition hover:shadow-md"
-          >
-            <span
-              className={`grid size-10 place-items-center rounded-lg ${accent}`}
+        <dl className="mt-16 grid w-full grid-cols-1 gap-4 text-left sm:grid-cols-2">
+          {features.map(({ icon: Icon, title, desc, accent }) => (
+            <div
+              key={title}
+              className="rounded-2xl border bg-card p-5 text-card-foreground shadow-sm transition hover:shadow-md"
             >
-              <Icon className="size-5" />
-            </span>
-            <dt className="mt-3 font-semibold">{title}</dt>
-            <dd className="mt-1 text-sm text-muted-foreground">{desc}</dd>
-          </div>
-        ))}
-      </dl>
-    </main>
+              <span
+                className={`grid size-10 place-items-center rounded-lg ${accent}`}
+              >
+                <Icon className="size-5" />
+              </span>
+              <dt className="mt-3 font-semibold">{title}</dt>
+              <dd className="mt-1 text-sm text-muted-foreground">{desc}</dd>
+            </div>
+          ))}
+        </dl>
+      </main>
+    </>
   );
 }
