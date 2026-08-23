@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 
+import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth";
 
 const features = [
@@ -15,7 +16,7 @@ export default async function Home() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col items-center justify-center px-6 py-20 text-center">
-      <span className="grid size-14 place-items-center rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 text-2xl font-black text-zinc-950">
+      <span className="grid size-14 place-items-center rounded-2xl bg-primary text-2xl font-black text-primary-foreground">
         B
       </span>
       <h1 className="mt-6 max-w-2xl bg-gradient-to-br from-white to-zinc-400 bg-clip-text text-5xl font-extrabold tracking-tight text-transparent sm:text-6xl">
@@ -27,19 +28,15 @@ export default async function Home() {
       </p>
 
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-        <Link
-          href={session ? "/games" : "/login?mode=signup"}
-          className="rounded-lg bg-emerald-500 px-6 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-400"
-        >
-          {session ? "Open my backlog" : "Get started - it's free"}
-        </Link>
-        {!session && (
-          <Link
-            href="/login"
-            className="rounded-lg border border-zinc-700 px-6 py-3 text-sm font-semibold text-zinc-200 transition hover:bg-zinc-900"
-          >
-            Sign in
+        <Button asChild>
+          <Link href={session ? "/games" : "/login?mode=signup"}>
+            {session ? "Open my backlog" : "Get started - it's free"}
           </Link>
+        </Button>
+        {!session && (
+          <Button asChild variant="outline">
+            <Link href="/login">Sign in</Link>
+          </Button>
         )}
       </div>
 
@@ -47,10 +44,10 @@ export default async function Home() {
         {features.map(([title, desc]) => (
           <div
             key={title}
-            className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5"
+            className="rounded-2xl border bg-card p-5 text-card-foreground"
           >
             <dt className="font-semibold">{title}</dt>
-            <dd className="mt-1 text-sm text-zinc-400">{desc}</dd>
+            <dd className="mt-1 text-sm text-muted-foreground">{desc}</dd>
           </div>
         ))}
       </dl>

@@ -3,6 +3,17 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { signIn, signUp } from "@/lib/auth-client";
 
 type Mode = "signin" | "signup";
@@ -60,115 +71,127 @@ export default function LoginForm({
     });
   }
 
-  const inputCls =
-    "w-full rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder:text-zinc-600";
-
   return (
-    <div className="w-full max-w-sm">
-      <a
-        href="/"
-        className="mb-8 flex items-center justify-center gap-2 text-lg font-semibold tracking-tight"
-      >
-        <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 font-bold text-zinc-950">
-          B
-        </span>
-        Game Backlog
-      </a>
+    <Card className="w-full max-w-sm">
+      <CardHeader className="text-center">
+        <a
+          href="/"
+          className="mx-auto mb-2 flex items-center justify-center gap-2 font-semibold tracking-tight"
+        >
+          <span className="grid size-9 place-items-center rounded-xl bg-primary text-base font-black text-primary-foreground">
+            B
+          </span>
+          Game Backlog
+        </a>
+        <CardTitle>
+          {mode === "signin" ? "Welcome back" : "Create your account"}
+        </CardTitle>
+        <CardDescription>
+          {mode === "signin"
+            ? "Sign in to your backlog"
+            : "Start tracking your game collection"}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        {(githubEnabled || googleEnabled) && (
+          <>
+            <div className="grid gap-2">
+              {githubEnabled && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void handleSocial("github")}
+                >
+                  Continue with GitHub
+                </Button>
+              )}
+              {googleEnabled && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void handleSocial("google")}
+                >
+                  Continue with Google
+                </Button>
+              )}
+            </div>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <Separator />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase text-muted-foreground">
+                <span className="bg-card px-2">or with email</span>
+              </div>
+            </div>
+          </>
+        )}
 
-      {githubEnabled || googleEnabled ? (
-        <>
+        <form onSubmit={handleSubmit} className="grid gap-3" noValidate>
+          {mode === "signup" && (
+            <div className="grid gap-2">
+              <Label htmlFor="lf-name">Name</Label>
+              <Input
+                id="lf-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                maxLength={80}
+                autoComplete="name"
+                placeholder="Your name"
+              />
+            </div>
+          )}
           <div className="grid gap-2">
-            {githubEnabled && (
-              <button
-                type="button"
-                onClick={() => void handleSocial("github")}
-                className="flex items-center justify-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm font-medium transition hover:bg-zinc-800"
-              >
-                Continue with GitHub
-              </button>
-            )}
-            {googleEnabled && (
-              <button
-                type="button"
-                onClick={() => void handleSocial("google")}
-                className="flex items-center justify-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm font-medium transition hover:bg-zinc-800"
-              >
-                Continue with Google
-              </button>
-            )}
+            <Label htmlFor="lf-email">Email</Label>
+            <Input
+              id="lf-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              placeholder="you@example.com"
+            />
           </div>
-          <div className="my-6 flex items-center gap-3 text-xs text-zinc-500">
-            <span className="h-px flex-1 bg-zinc-800" />
-            or with email
-            <span className="h-px flex-1 bg-zinc-800" />
+          <div className="grid gap-2">
+            <Label htmlFor="lf-password">Password</Label>
+            <Input
+              id="lf-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={8}
+              autoComplete={mode === "signup" ? "new-password" : "current-password"}
+              placeholder="Min 8 characters"
+            />
           </div>
-        </>
-      ) : null}
 
-      <form onSubmit={handleSubmit} className="grid gap-3" noValidate>
-        {mode === "signup" && (
-          <input
-            className={inputCls}
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            maxLength={80}
-            autoComplete="name"
-          />
-        )}
-        <input
-          className={inputCls}
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          autoComplete="email"
-        />
-        <input
-          className={inputCls}
-          type="password"
-          placeholder="Password (min 8 characters)"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          minLength={8}
-          autoComplete={mode === "signup" ? "new-password" : "current-password"}
-        />
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
-        {error && (
-          <p className="rounded-lg bg-red-950/60 px-3 py-2 text-xs text-red-300">
-            {error}
-          </p>
-        )}
+          <Button type="submit" disabled={pending}>
+            {pending
+              ? "Please wait..."
+              : mode === "signup"
+                ? "Create account"
+                : "Sign in"}
+          </Button>
+        </form>
 
-        <button
-          type="submit"
-          disabled={pending}
-          className="mt-1 rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-zinc-950 transition hover:bg-emerald-400 disabled:opacity-60"
-        >
-          {pending
-            ? "Please wait..."
-            : mode === "signup"
-              ? "Create account"
-              : "Sign in"}
-        </button>
-      </form>
-
-      <p className="mt-6 text-center text-sm text-zinc-400">
-        {mode === "signin" ? "No account yet?" : "Already have an account?"}{" "}
-        <button
-          type="button"
-          className="font-medium text-emerald-400 hover:underline"
-          onClick={() => {
-            setMode(mode === "signin" ? "signup" : "signin");
-            setError(null);
-          }}
-        >
-          {mode === "signin" ? "Sign up" : "Sign in"}
-        </button>
-      </p>
-    </div>
+        <p className="text-center text-sm text-muted-foreground">
+          {mode === "signin" ? "No account yet?" : "Already have an account?"}{" "}
+          <button
+            type="button"
+            className="font-medium text-primary underline-offset-4 hover:underline"
+            onClick={() => {
+              setMode(mode === "signin" ? "signup" : "signin");
+              setError(null);
+            }}
+          >
+            {mode === "signin" ? "Sign up" : "Sign in"}
+          </button>
+        </p>
+      </CardContent>
+    </Card>
   );
 }

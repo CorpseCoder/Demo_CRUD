@@ -5,7 +5,10 @@
 Next.js 15 (App Router, TypeScript, Tailwind v4) + Drizzle ORM + PostgreSQL
 (Neon-compatible `pg` driver) + Better Auth (email/password + GitHub/Google).
 CRUD runs through server actions in `src/lib/actions.ts`; validation is Zod in
-`src/lib/validation.ts`.
+`src/lib/validation.ts`. UI is shadcn/ui (new-york style, zinc base, dark
+theme forced via `.dark` on `<html>`): primitives live in `src/components/ui`
+(regenerate via `npx shadcn@latest add <name>`), theme tokens are CSS
+variables in `src/app/globals.css`, `cn()` helper in `src/lib/utils.ts`.
 
 ## Commands
 

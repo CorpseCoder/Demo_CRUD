@@ -4,5 +4,7 @@ out/
 .env
 .env.local
 *.tsbuildinfo
+*.log
 next-env.d.ts
+.opencode/
 .DS_Store
