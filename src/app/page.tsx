@@ -83,10 +83,11 @@ async function IpadShowcase() {
     >
       {/* Tablet bezel - wide landscape proportions like a real iPad */}
       <div className="rounded-[1.75rem] border border-white/10 bg-zinc-900 p-2 shadow-2xl shadow-black/40 sm:rounded-[2.25rem] sm:p-3">
-        <div className="relative overflow-hidden rounded-[1.25rem] bg-background sm:rounded-[1.75rem]">
+        {/* Screen locked to the iPad's classic 4:3 landscape ratio */}
+        <div className="relative aspect-[4/3] overflow-hidden rounded-[1.25rem] bg-background sm:rounded-[1.75rem]">
           <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-tr from-transparent via-white/5 to-white/10" />
 
-          <div className="flex">
+          <div className="flex h-full">
             {/* Sidebar */}
             <aside className="hidden flex-col items-center gap-5 border-r py-5 pl-4 pr-3 text-muted-foreground sm:flex">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -98,7 +99,7 @@ async function IpadShowcase() {
             </aside>
 
             {/* Screen content */}
-            <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 flex-1 flex-col">
               <header className="flex items-center justify-between gap-3 p-3 pb-2 sm:p-4 sm:pb-3">
                 <span className="text-xs font-semibold tracking-tight sm:text-sm">
                   My Library
@@ -117,11 +118,11 @@ async function IpadShowcase() {
                 />
               </header>
 
-              <div className="grid grid-cols-3 gap-2 p-3 pt-0 sm:grid-cols-6 sm:gap-3 sm:p-4 sm:pt-0">
+              <div className="grid min-h-0 flex-1 grid-cols-3 grid-rows-2 gap-2 p-3 pt-0 sm:gap-3 sm:p-4 sm:pt-0">
                 {showcaseGames.map((g, i) => (
                   <div
                     key={g.name}
-                    className={`group relative aspect-[3/4] overflow-hidden rounded-lg bg-gradient-to-br ${g.gradient} transition duration-300 hover:-translate-y-1 hover:shadow-xl`}
+                    className={`group relative h-full overflow-hidden rounded-lg bg-gradient-to-br ${g.gradient} transition duration-300 hover:-translate-y-1 hover:shadow-xl`}
                   >
                     {covers[i] && (
                       /* eslint-disable-next-line @next/next/no-img-element */
