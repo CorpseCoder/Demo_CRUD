@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
+import { Clock3, Gamepad2, Star } from "lucide-react";
+
 import GameForm from "@/components/GameForm";
 import Stars from "@/components/Stars";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -41,6 +43,8 @@ export type GameCardData = {
   favorite: boolean;
   releaseYear: number | null;
   genre: string | null;
+  category: string | null;
+  completedPercent: number | null;
   userId: string;
   createdAt: string;
   updatedAt: string;
@@ -55,6 +59,15 @@ const STATUS_BADGE: Record<Status, string> = {
   paused: "bg-amber-950 text-amber-300",
   dropped: "bg-red-950 text-red-300",
 };
+
+// Tag colour ramps up with hours played.
+function HOURS_BADGE(hours: number | null): string {
+  if (hours == null) return "bg-secondary text-secondary-foreground";
+  if (hours >= 100) return "bg-rose-950 text-rose-300";
+  if (hours >= 50) return "bg-amber-950 text-amber-300";
+  if (hours >= 20) return "bg-sky-950 text-sky-300";
+  return "bg-emerald-950 text-emerald-300";
+}
 
 const SORT_LABELS: Record<Sort, string> = {
   recent: "Recently added",
@@ -96,6 +109,8 @@ export default function Dashboard({
       return (
         g.name.toLowerCase().includes(q) ||
         g.platform.toLowerCase().includes(q) ||
+        (g.genre ?? "").toLowerCase().includes(q) ||
+        (g.category ?? "").toLowerCase().includes(q) ||
         (g.review ?? "").toLowerCase().includes(q)
       );
     });
@@ -317,112 +332,121 @@ export default function Dashboard({
             )}
           </div>
         ) : (
-          <ul className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <ul className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {visible.map((g) => (
               <li
                 key={g.id}
-                className="group relative flex flex-col overflow-hidden rounded-xl border bg-card text-card-foreground transition hover:border-ring/50"
+                className="group relative flex flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl"
               >
                 <button
                   type="button"
                   onClick={() => handleFavorite(g)}
                   disabled={pending}
                   aria-label={g.favorite ? "Unfavorite" : "Favorite"}
-                  className={`absolute right-3 top-3 z-10 grid size-8 place-items-center rounded-full text-lg leading-none backdrop-blur transition ${
+                  className={`absolute right-3 top-3 z-10 grid size-8 place-items-center rounded-full backdrop-blur transition ${
                     g.favorite
                       ? "bg-background/70 text-amber-400"
                       : "bg-background/50 text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  ★
+                  <Star className="size-4" fill={g.favorite ? "currentColor" : "none"} />
                 </button>
 
-                {g.coverUrl && (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={g.coverUrl}
-                    alt=""
-                    className="h-36 w-full object-cover"
-                    loading="lazy"
-                  />
-                )}
+                <div className="relative h-56 w-full shrink-0 overflow-hidden bg-muted">
+                  {g.coverUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={g.coverUrl}
+                      alt=""
+                      className="h-full w-full object-cover drop-shadow-lg transition duration-300 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="grid h-full w-full place-items-center bg-gradient-to-br from-muted to-secondary/60">
+                      <Gamepad2 className="size-16 text-muted-foreground/30" />
+                    </div>
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/50 to-transparent" />
+                </div>
 
-                <div className="flex flex-1 flex-col p-5">
+                <div className="flex flex-1 flex-col justify-end gap-3 p-5">
                   <div>
-                    <h3 className="truncate font-semibold" title={g.name}>
+                    <h3 className="truncate text-lg font-bold tracking-tight" title={g.name}>
                       {g.name}
                     </h3>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {[g.platform, g.genre, g.releaseYear]
-                        .filter(Boolean)
-                        .join(" · ")}
+                    <p className="mt-1 truncate text-sm text-muted-foreground">
+                      {[g.platform, g.releaseYear].filter(Boolean).join(" · ")}
                     </p>
                   </div>
 
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Badge className={`${STATUS_BADGE[g.status]} border-transparent`}>
                       {STATUS_LABELS[g.status]}
                     </Badge>
                     {g.playtimeHours != null && (
-                      <Badge variant="secondary">
+                      <Badge className={`${HOURS_BADGE(g.playtimeHours)} border-transparent`}>
+                        <Clock3 className="mr-1 size-3" />
                         {g.playtimeHours.toLocaleString()}h played
+                      </Badge>
+                    )}
+                    {g.category && (
+                      <Badge variant="outline" title={`Category: ${g.category}`}>
+                        {g.category}
                       </Badge>
                     )}
                   </div>
 
-                  <div className="mt-3">
+                  <div className="flex items-center justify-between gap-3">
                     <Stars value={g.rating} />
+                    {(g.genre || g.completedPercent != null) && (
+                      <span className="truncate text-xs text-muted-foreground">
+                        {[g.genre, g.completedPercent != null ? `${g.completedPercent}% done` : null]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                    )}
                   </div>
 
-                  {g.achievements.length > 0 && (
-                    <div className="mt-3 flex flex-wrap gap-1.5">
-                      {g.achievements.slice(0, 3).map((a) => (
-                        <Badge
-                          key={a}
-                          variant="outline"
-                          className="max-w-full truncate border-violet-900/60 bg-violet-950/60 font-normal text-violet-300"
-                          title={a}
-                        >
-                          {a}
-                        </Badge>
-                      ))}
-                      {g.achievements.length > 3 && (
-                        <Badge
-                          variant="outline"
-                          className="border-violet-900/60 bg-violet-950/60 font-normal text-violet-300"
-                        >
-                          +{g.achievements.length - 3}
-                        </Badge>
-                      )}
+                  {g.completedPercent != null && (
+                    <div
+                      className="h-1.5 overflow-hidden rounded-full bg-secondary"
+                      role="progressbar"
+                      aria-valuenow={g.completedPercent}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`${g.name} completion`}
+                    >
+                      <div
+                        className="h-full rounded-full bg-primary transition-all"
+                        style={{ width: `${g.completedPercent}%` }}
+                      />
                     </div>
                   )}
 
                   {g.review && (
                     <p
-                      className="mt-3 line-clamp-3 text-sm text-muted-foreground"
+                      className="line-clamp-3 text-sm leading-relaxed text-muted-foreground"
                       title={g.review}
                     >
                       {g.review}
                     </p>
                   )}
 
-                  <div className="mt-auto pt-4">
-                    <div className="flex gap-2 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setEditing(g);
-                          setFormError(null);
-                          setFormOpen(true);
-                        }}
-                      >
-                        Edit
-                      </Button>
-                      <Button size="sm" variant="destructive" onClick={() => setDeleting(g)}>
-                        Delete
-                      </Button>
-                    </div>
+                  <div className="flex gap-2 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setEditing(g);
+                        setFormError(null);
+                        setFormOpen(true);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => setDeleting(g)}>
+                      Delete
+                    </Button>
                   </div>
                 </div>
               </li>

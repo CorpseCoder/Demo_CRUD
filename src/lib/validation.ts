@@ -41,13 +41,30 @@ export const gameInputSchema = z.object({
     .max(40)
     .nullable()
     .transform((v) => v ?? []),
-  playtimeHours: z.number().int().min(0).max(100000).nullable(),
+  playtimeHours: z
+    .number()
+    .int("Whole hours only")
+    .min(0, "Cannot be negative")
+    .max(100000, "Too large")
+    .nullable(),
   coverUrl: z.string().trim().url("Must be a valid URL").max(500).nullable()
     .or(z.literal("").transform(() => null)),
   notes: z.string().trim().max(2000).nullable(),
   favorite: z.boolean(),
-  releaseYear: z.number().int().min(1950).max(2100).nullable(),
-  genre: z.string().trim().max(60).nullable(),
+  releaseYear: z
+    .number()
+    .int("Whole year only")
+    .min(1950, "Year must be 1950 or later")
+    .max(2100, "Year must be 2100 or earlier")
+    .nullable(),
+  genre: z.string().trim().max(60, "Max 60 characters").nullable(),
+  category: z.string().trim().max(60, "Max 60 characters").nullable(),
+  completedPercent: z
+    .number()
+    .int("Whole numbers only")
+    .min(0, "Must be between 0 and 100")
+    .max(100, "Must be between 0 and 100")
+    .nullable(),
 });
 
 export type GameInput = z.infer<typeof gameInputSchema>;

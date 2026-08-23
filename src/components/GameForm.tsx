@@ -18,6 +18,7 @@ import {
   PLATFORMS,
   STATUS_LABELS,
   STATUS_VALUES,
+  gameInputSchema,
   type Status,
 } from "@/lib/validation";
 
@@ -28,6 +29,14 @@ type Candidate = {
   released: string | null;
   genres: string[];
 };
+
+type FieldErrors = Partial<Record<string, string>>;
+
+function toIntOrNull(value: string): number | null {
+  if (value.trim() === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.trunc(n) : NaN;
+}
 
 export default function GameForm({
   initial,
@@ -54,9 +63,14 @@ export default function GameForm({
   );
   const [review, setReview] = useState(initial?.review ?? "");
   const [genre, setGenre] = useState(initial?.genre ?? "");
+  const [category, setCategory] = useState(initial?.category ?? "");
+  const [completedPercent, setCompletedPercent] = useState(
+    initial?.completedPercent != null ? String(initial.completedPercent) : "",
+  );
   const [releaseYear, setReleaseYear] = useState(
     initial?.releaseYear != null ? String(initial.releaseYear) : "",
   );
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchConfigured, setSearchConfigured] = useState(true);
@@ -86,6 +100,10 @@ export default function GameForm({
     return () => clearTimeout(t);
   }, [name]);
 
+  function clearError(key: string) {
+    setFieldErrors((prev) => (prev[key] ? { ...prev, [key]: undefined } : prev));
+  }
+
   function pickCandidate(c: Candidate) {
     setSelectedUrl(c.image);
     if (!releaseYear && c.released) {
@@ -93,16 +111,17 @@ export default function GameForm({
       if (!Number.isNaN(y)) setReleaseYear(String(y));
     }
     if (!genre.trim() && c.genres.length > 0) setGenre(c.genres[0]);
+    if (!category.trim() && c.genres.length > 0) setCategory(c.genres[0]);
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    onSubmit({
+    const payload = {
       name,
       platform,
       status,
       rating,
-      playtimeHours: playtime === "" ? null : Number(playtime),
+      playtimeHours: toIntOrNull(playtime),
       achievements: achievementsText
         .split("\n")
         .map((s) => s.trim())
@@ -112,8 +131,32 @@ export default function GameForm({
       notes: null,
       favorite: false,
       genre: genre.trim() === "" ? null : genre.trim(),
-      releaseYear: releaseYear === "" ? null : Number(releaseYear),
-    });
+      category: category.trim() === "" ? null : category.trim(),
+      completedPercent: toIntOrNull(completedPercent),
+      releaseYear: toIntOrNull(releaseYear),
+    };
+
+    // Client-side validation mirrors the server schema; errors show inline.
+    const parsed = gameInputSchema.safeParse(payload);
+    if (!parsed.success) {
+      const errs: FieldErrors = {};
+      for (const issue of parsed.error.issues) {
+        const key = String(issue.path[0] ?? "form");
+        if (!errs[key]) errs[key] = issue.message;
+      }
+      setFieldErrors(errs);
+      return;
+    }
+
+    setFieldErrors({});
+    onSubmit(payload);
+  }
+
+  function fieldError(key: string) {
+    const msg = fieldErrors[key];
+    return msg ? (
+      <p className="text-xs font-medium text-destructive">{msg}</p>
+    ) : null;
   }
 
   return (
@@ -123,12 +166,17 @@ export default function GameForm({
         <Input
           id="gf-name"
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => {
+            setName(e.target.value);
+            clearError("name");
+          }}
           placeholder="e.g. Elden Ring"
           required
           maxLength={140}
+          aria-invalid={!!fieldErrors.name}
           autoFocus
         />
+        {fieldError("name")}
       </div>
 
       {searchConfigured && (
@@ -223,10 +271,52 @@ export default function GameForm({
             type="number"
             min={0}
             max={100000}
+            step={1}
             value={playtime}
-            onChange={(e) => setPlaytime(e.target.value)}
+            onChange={(e) => {
+              setPlaytime(e.target.value);
+              clearError("playtimeHours");
+            }}
             placeholder="0"
+            aria-invalid={!!fieldErrors.playtimeHours}
           />
+          {fieldError("playtimeHours")}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-2">
+          <Label htmlFor="gf-category">Category</Label>
+          <Input
+            id="gf-category"
+            value={category}
+            onChange={(e) => {
+              setCategory(e.target.value);
+              clearError("category");
+            }}
+            placeholder="e.g. Open world"
+            maxLength={60}
+            aria-invalid={!!fieldErrors.category}
+          />
+          {fieldError("category")}
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="gf-completion">Completed (%)</Label>
+          <Input
+            id="gf-completion"
+            type="number"
+            min={0}
+            max={100}
+            step={1}
+            value={completedPercent}
+            onChange={(e) => {
+              setCompletedPercent(e.target.value);
+              clearError("completedPercent");
+            }}
+            placeholder="0-100"
+            aria-invalid={!!fieldErrors.completedPercent}
+          />
+          {fieldError("completedPercent")}
         </div>
       </div>
 
@@ -236,10 +326,15 @@ export default function GameForm({
           <Input
             id="gf-genre"
             value={genre}
-            onChange={(e) => setGenre(e.target.value)}
+            onChange={(e) => {
+              setGenre(e.target.value);
+              clearError("genre");
+            }}
             placeholder="RPG"
             maxLength={60}
+            aria-invalid={!!fieldErrors.genre}
           />
+          {fieldError("genre")}
         </div>
         <div className="grid gap-2">
           <Label htmlFor="gf-year">Release year</Label>
@@ -248,10 +343,16 @@ export default function GameForm({
             type="number"
             min={1950}
             max={2100}
+            step={1}
             value={releaseYear}
-            onChange={(e) => setReleaseYear(e.target.value)}
+            onChange={(e) => {
+              setReleaseYear(e.target.value);
+              clearError("releaseYear");
+            }}
             placeholder="2024"
+            aria-invalid={!!fieldErrors.releaseYear}
           />
+          {fieldError("releaseYear")}
         </div>
       </div>
 
@@ -263,10 +364,15 @@ export default function GameForm({
           id="gf-achievements"
           rows={3}
           value={achievementsText}
-          onChange={(e) => setAchievementsText(e.target.value)}
+          onChange={(e) => {
+            setAchievementsText(e.target.value);
+            clearError("achievements");
+          }}
           placeholder={"First steps\nBeat the final boss\n100% completion"}
           maxLength={4200}
+          aria-invalid={!!fieldErrors.achievements}
         />
+        {fieldError("achievements")}
       </div>
 
       <div className="grid gap-2">
@@ -275,10 +381,15 @@ export default function GameForm({
           id="gf-review"
           rows={4}
           value={review}
-          onChange={(e) => setReview(e.target.value)}
+          onChange={(e) => {
+            setReview(e.target.value);
+            clearError("review");
+          }}
           placeholder="Your thoughts on the game..."
           maxLength={2000}
+          aria-invalid={!!fieldErrors.review}
         />
+        {fieldError("review")}
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}

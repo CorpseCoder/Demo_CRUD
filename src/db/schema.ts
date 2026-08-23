@@ -86,6 +86,8 @@ export const games = pgTable("games", {
   favorite: boolean("favorite").notNull().default(false),
   releaseYear: integer("release_year"),
   genre: text("genre"),
+  category: text("category"),
+  completedPercent: integer("completed_percent"),
   userId: text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
