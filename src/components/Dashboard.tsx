@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import GameForm from "@/components/GameForm";
+import GameDetails from "@/components/GameDetails";
 import Stars from "@/components/Stars";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -108,6 +109,7 @@ export default function Dashboard({
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<GameCardData | null>(null);
   const [deleting, setDeleting] = useState<GameCardData | null>(null);
+  const [details, setDetails] = useState<GameCardData | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -420,11 +422,23 @@ export default function Dashboard({
             {visible.map((g) => (
               <li
                 key={g.id}
-                className="group relative flex flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-md transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+                role="button"
+                tabIndex={0}
+                aria-label={`View details for ${g.name}`}
+                onClick={() => setDetails(g)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && e.target === e.currentTarget) {
+                    setDetails(g);
+                  }
+                }}
+                className="group relative flex cursor-pointer flex-col overflow-hidden rounded-xl border bg-card text-card-foreground shadow-md outline-none transition duration-300 hover:-translate-y-1 hover:shadow-xl focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 <button
                   type="button"
-                  onClick={() => handleFavorite(g)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleFavorite(g);
+                  }}
                   disabled={pending}
                   aria-label={g.favorite ? "Unfavorite" : "Favorite"}
                   className={`absolute right-3 top-3 z-10 grid size-8 place-items-center rounded-full backdrop-blur transition ${
@@ -520,7 +534,8 @@ export default function Dashboard({
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setEditing(g);
                         setFormError(null);
                         setFormOpen(true);
@@ -528,7 +543,14 @@ export default function Dashboard({
                     >
                       Edit
                     </Button>
-                    <Button size="sm" variant="destructive" onClick={() => setDeleting(g)}>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleting(g);
+                      }}
+                    >
                       Delete
                     </Button>
                   </div>
@@ -577,6 +599,16 @@ export default function Dashboard({
               {pending ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={details !== null} onOpenChange={(o) => !o && setDetails(null)}>
+        <DialogContent className="max-h-[90vh] gap-0 overflow-y-auto p-0 sm:max-w-2xl">
+          <DialogTitle className="sr-only">{details?.name} details</DialogTitle>
+          <DialogDescription className="sr-only">
+            Extended information about this game from RAWG.
+          </DialogDescription>
+          {details && <GameDetails game={details} />}
         </DialogContent>
       </Dialog>
     </div>
