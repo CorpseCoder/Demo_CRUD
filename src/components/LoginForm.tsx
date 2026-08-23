@@ -117,9 +117,8 @@ export default function LoginForm({
           href="/"
           className="mx-auto mb-2 flex items-center justify-center gap-2 font-semibold tracking-tight"
         >
-          <span className="grid size-9 place-items-center rounded-xl bg-primary text-base font-black text-primary-foreground">
-            B
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="Game Backlog logo" className="size-9" />
           Game Backlog
         </a>
         <CardTitle>

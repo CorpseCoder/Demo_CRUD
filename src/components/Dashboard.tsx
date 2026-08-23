@@ -1,12 +1,19 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
-import { Clock3, Gamepad2, Star } from "lucide-react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import {
+  Activity,
+  Clock3,
+  Gamepad2,
+  LogOut,
+  Moon,
+  Star,
+  Sun,
+} from "lucide-react";
 
 import GameForm from "@/components/GameForm";
 import Stars from "@/components/Stars";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +24,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -85,6 +100,8 @@ export default function Dashboard({
 }) {
   const router = useRouter();
   const [games, setGames] = useState(initialGames);
+  const [live, setLive] = useState(false);
+  const [isDark, setIsDark] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<Status | "all">("all");
   const [sort, setSort] = useState<Sort>("recent");
@@ -93,6 +110,29 @@ export default function Dashboard({
   const [deleting, setDeleting] = useState<GameCardData | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  // Adopt fresh server data whenever the RSC payload changes (e.g. live refresh).
+  useEffect(() => {
+    setGames(initialGames);
+  }, [initialGames]);
+
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains("dark"));
+  }, []);
+
+  // Live mode: poll the server for fresh data every 8 seconds.
+  useEffect(() => {
+    if (!live) return;
+    const id = setInterval(() => router.refresh(), 8000);
+    return () => clearInterval(id);
+  }, [live, router]);
+
+  function toggleTheme() {
+    const next = !isDark;
+    setIsDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("theme", next ? "dark" : "light");
+  }
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: games.length };
@@ -211,21 +251,65 @@ export default function Dashboard({
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-2 font-semibold tracking-tight">
-            <span className="grid size-8 place-items-center rounded-lg bg-primary text-sm font-black text-primary-foreground">
-              B
-            </span>
-            Game Backlog
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="hidden text-sm text-muted-foreground sm:block">
-              {user.name || user.email}
-            </span>
-            <Button variant="outline" size="sm" onClick={() => void handleSignOut()}>
-              Sign out
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-3 sm:gap-4 sm:px-6">
+          <a href="/games" className="flex min-w-0 items-center gap-2 font-semibold tracking-tight">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.svg" alt="Game Backlog logo" className="size-8 shrink-0" />
+            <span className="truncate">Game Backlog</span>
+          </a>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              size="sm"
+              variant={live ? "default" : "outline"}
+              onClick={() => setLive((v) => !v)}
+              aria-pressed={live}
+              title={live ? "Live updates on (refreshes every 8s)" : "Enable live updates"}
+            >
+              <Activity className="size-4" />
+              <span className="hidden sm:inline">Live</span>
+              {live && (
+                <span
+                  aria-hidden
+                  className="ml-0.5 inline-block size-1.5 animate-pulse rounded-full bg-current"
+                />
+              )}
             </Button>
-            <ThemeToggle />
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="flex items-center gap-2 rounded-full border py-1 pl-1 pr-1.5 transition hover:bg-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:pr-3"
+                  aria-label="Open profile menu"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/avatar.svg"
+                    alt=""
+                    className="size-7 shrink-0 rounded-full border sm:size-8"
+                  />
+                  <span className="hidden max-w-36 truncate text-sm font-medium sm:block">
+                    {user.name || user.email}
+                  </span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="font-normal">
+                  <p className="truncate text-sm font-semibold">{user.name}</p>
+                  <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={toggleTheme}>
+                  {isDark ? <Sun /> : <Moon />}
+                  {isDark ? "Light mode" : "Dark mode"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive" onClick={() => void handleSignOut()}>
+                  <LogOut />
+                  Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
