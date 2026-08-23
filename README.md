@@ -74,3 +74,6 @@ Providers without credentials configured are hidden from the login screen.
 - Every user sees only their own games; ownership is enforced server-side in
   every CRUD action (`src/lib/actions.ts`).
 - Input validation happens on the server boundary with Zod (`src/lib/validation.ts`).
+- Cover art is fetched live from the RAWG.io API while typing a game name.
+  Set `RAWG_API_KEY` (free at rawg.io/apidocs) to enable; without it the
+  cover picker is hidden and everything else works.

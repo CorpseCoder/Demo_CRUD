@@ -30,3 +30,6 @@ docker compose up -d --build   # full stack incl. Postgres; migrations run on co
   every action) — that is the ownership/authorization boundary.
 - Social providers are conditionally enabled: if client ID/secret env vars are
   absent they are omitted from config and hidden from the login UI.
+- Cover art search (`GET /api/games/search?q=`) proxies RAWG.io; it requires
+  `RAWG_API_KEY` in env. Without the key the endpoint returns
+  `{configured:false}` and the form hides the picker — that is intentional, not a bug.

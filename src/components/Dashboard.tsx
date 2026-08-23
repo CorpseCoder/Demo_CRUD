@@ -323,31 +323,45 @@ export default function Dashboard({
             {visible.map((g) => (
               <li
                 key={g.id}
-                className="group relative flex flex-col rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5 transition hover:border-zinc-700"
+                className="group relative flex flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50 transition hover:border-zinc-700"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <h3 className="truncate font-semibold" title={g.name}>
-                      {g.name}
-                    </h3>
-                    <p className="mt-0.5 truncate text-xs text-zinc-500">
-                      {[g.platform, g.genre, g.releaseYear]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
+                <button
+                  type="button"
+                  onClick={() => handleFavorite(g)}
+                  disabled={pending}
+                  aria-label={g.favorite ? "Unfavorite" : "Favorite"}
+                  className={`absolute right-3 top-3 z-10 grid size-8 place-items-center rounded-full text-lg leading-none backdrop-blur transition ${
+                    g.favorite
+                      ? "bg-zinc-950/70 text-amber-400"
+                      : "bg-zinc-950/50 text-zinc-500 hover:text-zinc-200"
+                  }`}
+                >
+                  ★
+                </button>
+
+                {g.coverUrl && (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={g.coverUrl}
+                    alt=""
+                    className="h-36 w-full object-cover"
+                    loading="lazy"
+                  />
+                )}
+
+                <div className="flex flex-1 flex-col p-5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h3 className="truncate font-semibold" title={g.name}>
+                        {g.name}
+                      </h3>
+                      <p className="mt-0.5 truncate text-xs text-zinc-500">
+                        {[g.platform, g.genre, g.releaseYear]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleFavorite(g)}
-                    disabled={pending}
-                    aria-label={g.favorite ? "Unfavorite" : "Favorite"}
-                    className={`shrink-0 text-lg leading-none transition ${
-                      g.favorite ? "text-amber-400" : "text-zinc-700 hover:text-zinc-500"
-                    }`}
-                  >
-                    ★
-                  </button>
-                </div>
 
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <span
@@ -394,22 +408,23 @@ export default function Dashboard({
                   </p>
                 )}
 
-                <div className="mt-auto pt-4">
-                  <div className="flex gap-2 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
-                    <button
-                      type="button"
-                      onClick={() => openEdit(g)}
-                      className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:bg-zinc-800"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeleting(g)}
-                      className="rounded-lg border border-red-900/70 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-950"
-                    >
-                      Delete
-                    </button>
+                  <div className="mt-auto pt-4">
+                    <div className="flex gap-2 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+                      <button
+                        type="button"
+                        onClick={() => openEdit(g)}
+                        className="rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-medium text-zinc-300 transition hover:bg-zinc-800"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleting(g)}
+                        className="rounded-lg border border-red-900/70 px-3 py-1.5 text-xs font-medium text-red-400 transition hover:bg-red-950"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 </div>
               </li>

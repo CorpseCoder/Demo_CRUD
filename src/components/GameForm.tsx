@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import Stars from "@/components/Stars";
 import {
@@ -38,6 +38,47 @@ export default function GameForm({
   const [releaseYear, setReleaseYear] = useState(
     initial?.releaseYear != null ? String(initial.releaseYear) : "",
   );
+  const [candidates, setCandidates] = useState<
+    { id: number; name: string; image: string; released: string | null; genres: string[] }[]
+  >([]);
+  const [searching, setSearching] = useState(false);
+  const [searchConfigured, setSearchConfigured] = useState(true);
+  const [selectedUrl, setSelectedUrl] = useState<string | null>(
+    initial?.coverUrl ?? null,
+  );
+
+  useEffect(() => {
+    const q = name.trim();
+    if (q.length < 3) {
+      setCandidates([]);
+      return;
+    }
+    const t = setTimeout(async () => {
+      try {
+        setSearching(true);
+        const res = await fetch(
+          `/api/games/search?q=${encodeURIComponent(q)}`,
+        );
+        const data = await res.json();
+        setSearchConfigured(data.configured !== false);
+        setCandidates(Array.isArray(data.results) ? data.results : []);
+      } catch {
+        setCandidates([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [name]);
+
+  function pickCandidate(c: { image: string; released: string | null; genres: string[] }) {
+    setSelectedUrl(c.image);
+    if (!releaseYear && c.released) {
+      const y = Number(c.released.slice(0, 4));
+      if (!Number.isNaN(y)) setReleaseYear(String(y));
+    }
+    if (!genre.trim() && c.genres.length > 0) setGenre(c.genres[0]);
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,7 +93,7 @@ export default function GameForm({
         .map((s) => s.trim())
         .filter(Boolean),
       review: review.trim() === "" ? null : review.trim(),
-      coverUrl: null,
+      coverUrl: selectedUrl,
       notes: null,
       favorite: false,
       genre: genre.trim() === "" ? null : genre.trim(),
@@ -82,6 +123,48 @@ export default function GameForm({
           autoFocus
         />
       </div>
+
+      {searchConfigured && (
+        <div>
+          <span className={label}>
+            Cover art{" "}
+            <span className="text-zinc-600">
+              {searching
+                ? "searching..."
+                : candidates.length > 0
+                  ? "- click one to use it"
+                  : name.trim().length >= 3
+                    ? "- no matches found"
+                    : "(type a name to search online)"}
+            </span>
+          </span>
+          {candidates.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {candidates.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => pickCandidate(c)}
+                  title={c.name}
+                  className={`shrink-0 overflow-hidden rounded-lg border-2 transition ${
+                    selectedUrl === c.image
+                      ? "border-emerald-400"
+                      : "border-transparent opacity-80 hover:opacity-100"
+                  }`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={c.image}
+                    alt={c.name}
+                    className="h-24 w-16 object-cover"
+                    loading="lazy"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div>
